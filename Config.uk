@@ -1,0 +1,12 @@
+menuconfig LIBOCAML
+	bool "ocaml Unikraft library"
+#	select LIBPTHREAD_EMBEDDED
+#	select LIBNEWLIBC
+	default n
+
+if LIBOCAML
+config LIBOCAML_MAIN_FUNCTION
+	bool "Provide main function"
+	default n
+
+endif

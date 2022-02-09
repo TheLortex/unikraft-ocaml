@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# ocaml Unikraft library
+#
+# Authors: Lucas Pluvinage <lucas@tarides.com>
+#
+# Copyright (c) 2022, Lucas Pluvinage <lucas@tarides.com>. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright holder nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+################################################################################
+# Library registration
+################################################################################
+$(eval $(call addlib_s,libocaml,$(CONFIG_LIBOCAML)))
+
+################################################################################
+# Sources
+################################################################################]
+LIBOCAML_VERSION = trunk
+LIBOCAML_URL = https://github.com/ocaml/ocaml/archive/$(LIBOCAML_VERSION).zip
+LIBOCAML_SUBDIR = ocaml-$(LIBOCAML_VERSION)
+LIBOCAML_PATCHDIR = $(LIBOCAML_BASE)/patches
+$(eval $(call patch,libocaml,$(LIBOCAML_PATCHDIR),$(LIBOCAML_SUBDIR)))
+$(eval $(call fetch,libocaml,$(LIBOCAML_URL)))
+
+################################################################################
+# Helpers
+################################################################################
+LIBOCAML_SRC = $(LIBOCAML_ORIGIN)/$(LIBOCAML_SUBDIR)
+
+################################################################################
+# Library includes
+################################################################################
+CINCLUDES-y += -I$(LIBOCAML_SRC)/runtime/
+
+
+$(LIBOCAML_SRC)/.configured: $(LIBOCAML_BUILD)/.origin
+	cd $(LIBOCAML_SRC) && \
+	CC=$(CC) \
+	CFLAGS="$(COMPFLAGS) $(COMPFLAGS)-y $(CFLAGS) $(CFLAGS-y) $(CINCLUDES) $(CINCLUDES-y)" \
+	CPPFLAGS="" \
+	LIBS="-Wl,--unresolved-symbols=ignore-all" \
+	./configure --host x86_64-none && touch $@
+
+$(LIBOCAML_BUILD)/.prepared: $(LIBOCAML_SRC)/.configured
+
+UK_PREPARE += $(LIBOCAML_BUILD)/.prepared
+
+
+################################################################################
+# Flags
+################################################################################
+LIBOCAML_FLAGS = -DNATIVE_CODE -DTARGET_amd64
+
+# Suppress some warnings to make the build process look neater
+LIBOCAML_FLAGS_SUPPRESS = -Wincompatible-pointer-types
+
+LIBOCAML_CFLAGS-y += $(LIBOCAML_FLAGS)
+LIBOCAML_CFLAGS-y += $(LIBOCAML_FLAGS_SUPPRESS)
+
+################################################################################
+# Glue code
+################################################################################
+# Include paths
+# LIBOCAML_CINCLUDES-y   += $(LIBOCAML_COMMON_INCLUDES-y)
+# LIBOCAML_CXXINCLUDES-y += $(LIBOCAML_COMMON_INCLUDES-y)
+# LIBOCAMLSRCS-$(CONFIG_LIBOCAML_MAIN_FUNCTION) += $(LIBOCAML_BASE)/main.c|unikraft
+
+################################################################################
+# Library sources
+################################################################################
+LIBOCAML_SRCS-y += $(addprefix $(LIBOCAML_SRC)/runtime/,$(addsuffix .c, \
+  startup_aux startup_nat main fail_nat roots signals \
+  signals_nat misc major_gc minor_gc memory alloc compare ints \
+  floats str array io extern intern hash sys parsing gc_ctrl eventlog md5 obj \
+  lexing printexc callback weak finalise custom \
+  globroots backtrace_nat backtrace debugger meta \
+  platform fiber shared_heap addrmap frame_descriptors \
+  clambda_checks afl bigarray unix \
+  memprof domain sync skiplist lf_skiplist codefrag prng))
+
+#LIBOCAML_SRCS-y += $(LIBOCAML_SRC)/runtime/amd64.S
