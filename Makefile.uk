@@ -66,6 +66,10 @@ $(LIBOCAML_SRC)/.configured: $(LIBOCAML_BUILD)/.origin
 	./configure --host x86_64-none && touch $@
 
 $(LIBOCAML_BUILD)/.prepared: $(LIBOCAML_SRC)/.configured
+	echo "#undef POSIX_SIGNALS" >> $(LIBOCAML_SRC)/runtime/caml/s.h
+	echo "#define Max_domains 1" >> $(LIBOCAML_SRC)/runtime/caml/config.h
+	echo "#define Minor_heap_max (1 << 22)" >> $(LIBOCAML_SRC)/runtime/caml/config.h
+	touch $@
 
 UK_PREPARE += $(LIBOCAML_BUILD)/.prepared
 
@@ -102,4 +106,4 @@ LIBOCAML_SRCS-y += $(addprefix $(LIBOCAML_SRC)/runtime/,$(addsuffix .c, \
   clambda_checks afl bigarray unix \
   memprof domain sync skiplist lf_skiplist codefrag prng))
 
-#LIBOCAML_SRCS-y += $(LIBOCAML_SRC)/runtime/amd64.S
+LIBOCAML_SRCS-y += $(LIBOCAML_SRC)/runtime/amd64.S

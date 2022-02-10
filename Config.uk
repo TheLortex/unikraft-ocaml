@@ -1,7 +1,7 @@
 menuconfig LIBOCAML
 	bool "ocaml Unikraft library"
-#	select LIBPTHREAD_EMBEDDED
-#	select LIBNEWLIBC
+	select LIBPTHREAD_EMBEDDED
+	select LIBNEWLIBC
 	default n
 
 if LIBOCAML
